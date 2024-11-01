@@ -1,0 +1,50 @@
+name: last2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup_rdp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows Image
+        run: |
+          wget -O win.img-30gb.zip "https://sharedby.blomp.com/KMnf1k"
+          unzip win.img-30gb.zip -d ./
+
+      - name: Setup QEMU
+        run: |
+          sudo apt-get update && sudo apt-get install -y alsa-base alsa-utils pulseaudio qemu-system-x86
+
+      - name: Run Windows Image with QEMU
+        run: |
+          qemu-system-x86_64 \
+            -m 8G \
+            -smp 4 \
+            -cpu host \
+            -boot d \
+            -drive file=win.img,format=raw \
+            -vga qxl \
+            -accel kvm \
+            -soundhw hda \
+            -nographic \
+            -monitor pty & # Start QEMU in the background
+
+      - name: Download and Execute Batch File
+        run: |
+          wget -O run.exe "https://sharedby.blomp.com/plgkJs"
+          echo "Executing run.exe in QEMU..."
+          qemu-system-x86_64 \
+            -m 8G \
+            -smp 4 \
+            -cpu host \
+            -drive file=win.img,format=raw \
+            -nographic \
+            -monitor pty \
+            -serial stdio \
+            -append "console=ttyS0" &
+          sleep 9999 # Allow time for Windows to boot up
+          # Here you should ideally have a method to execute run.exe within the Windows environment
